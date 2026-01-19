@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nim Game</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #1e1e2f;
+        color: white;
+        text-align: center;
+        margin: 0;
+        padding: 10px;
+    }
+
+    h1 {
+        color: #00ffcc;
+        margin-bottom: 10px;
+    }
+
+    .controls {
+        margin-bottom: 20px;
+    }
+
+    .game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .pile {
+        background: #2d2d44;
+        padding: 15px;
+        width: 95%;
+        max-width: 350px;
+        border-radius: 12px;
+    }
+
+    .stones {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin: 10px 0;
+        min-height: 40px;
+    }
+
+    .stone {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        margin: 4px;
+        background: radial-gradient(circle, #ddd, #777);
+        animation: popIn 0.3s ease;
+    }
+
+    .stone.removed {
+        animation: fallOut 0.5s forwards;
+    }
+
+    @keyframes fallOut {
+        to {
+            transform: translateY(40px) scale(0);
+            opacity: 0;
+        }
+    }
+
+    @keyframes popIn {
+        from {
+            transform: scale(0);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    input {
+        width: 70px;
+        padding: 6px;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+
+    button {
+        padding: 8px 15px;
+        margin-top: 8px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        width: 100px;
+    }
+
+    button:hover {
+        background: #00ffcc;
+        color: black;
+    }
+
+    #message {
+        margin-top: 20px;
+        font-size: 18px;
+        color: yellow;
+    }
+
+    /* 📱 Mobile adjustments */
+    @media (max-width: 480px) {
+        h1 {
+            font-size: 22px;
+        }
+
+        button {
+            width: 100%;
+        }
+
+        input {
+            width: 100%;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<h1>NIM GAME</h1>
+
+<div class="controls">
+    <label>Piles:</label>
+    <input type="number" id="numPiles" value="3" min="1" max="6">
+    <button onclick="startGame()">Start</button>
+</div>
+
+<div id="gameArea" class="game-container"></div>
+<div id="message"></div>
+
+<script>
+let piles = [];
+let humanTurn = true;
+
+function startGame() {
+    let n = parseInt(document.getElementById("numPiles").value);
+    piles = [];
+
+    for (let i = 0; i < n; i++) {
+        piles.push(Math.floor(Math.random() * 8) + 3);
+    }
+
+    humanTurn = true;
+    renderGame();
+    document.getElementById("message").innerText = "Your Turn";
+}
+
+function calculateNimSum() {
+    let nimSum = 0;
+    for (let s of piles) nimSum ^= s;
+    return nimSum;
+}
+
+function renderGame() {
+    const area = document.getElementById("gameArea");
+    area.innerHTML = "";
+
+    piles.forEach((count, index) => {
+        const pileDiv = document.createElement("div");
+        pileDiv.className = "pile";
+
+        let stonesHTML = "";
+        for (let i = 0; i < count; i++) {
+            stonesHTML += `<div class="stone"></div>`;
+        }
+
+        pileDiv.innerHTML = `
+            <strong>Pile ${index + 1}</strong>
+            <div class="stones">${stonesHTML}</div>
+            <input type="number" min="1" max="${count}" id="input${index}">
+            <button onclick="humanMove(${index})">Remove</button>
+        `;
+
+        area.appendChild(pileDiv);
+    });
+}
+
+function humanMove(index) {
+    if (!humanTurn) return;
+
+    let removeCount = parseInt(document.getElementById("input" + index).value);
+    if (!removeCount || removeCount < 1 || removeCount > piles[index]) {
+        alert("Invalid move!");
+        return;
+    }
+
+    animateRemoval(index, removeCount);
+    piles[index] -= removeCount;
+    humanTurn = false;
+
+    setTimeout(() => {
+        renderGame();
+        if (isGameOver()) {
+            document.getElementById("message").innerText = "🎉 You Win!";
+        } else {
+            setTimeout(computerMove, 800);
+        }
+    }, 500);
+}
+
+function computerMove() {
+    let nimSum = calculateNimSum();
+
+    for (let i = 0; i < piles.length; i++) {
+        let target = (nimSum === 0) ? piles[i] - 1 : (piles[i] ^ nimSum);
+        if (target < piles[i]) {
+            animateRemoval(i, piles[i] - target);
+            piles[i] = target;
+            break;
+        }
+    }
+
+    setTimeout(() => {
+        renderGame();
+        if (isGameOver()) {
+            document.getElementById("message").innerText = "💻 Computer Wins!";
+        } else {
+            document.getElementById("message").innerText = "Your Turn";
+            humanTurn = true;
+        }
+    }, 500);
+}
+
+function animateRemoval(index, count) {
+    const pile = document.getElementsByClassName("stones")[index];
+    const stones = pile.children;
+
+    for (let i = stones.length - 1; i >= stones.length - count; i--) {
+        stones[i].classList.add("removed");
+    }
+}
+
+function isGameOver() {
+    return piles.every(s => s === 0);
+}
+</script>
+
+</body>
+</html>
